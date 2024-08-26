@@ -1,0 +1,7 @@
+## Interface: 100105
+## Title: Simple Damage Modifier
+## Notes: Modifies the damage numbers displayed by your character
+## Author: Oxos
+## Version: 1.0
+
+SimpleDamageModifier.lua
