@@ -112,30 +112,44 @@ frame:SetScript("OnEvent", OnEvent)
 -- Function to scale down stats in tooltip, while ignoring cooldowns, durability, level-related lines, and mythic+/season information
 local function ScaleTooltipStats(tooltip)
     -- Iterate over each line in the tooltip
-    for i = 1, tooltip:NumLines() do  -- Check all lines
+    for i = 1, tooltip:NumLines() do
         local line = _G[tooltip:GetName() .. "TextLeft" .. i]
         local text = line:GetText()
 
         if text then
-            -- Skip lines that mention durability, levels, or Mythic+/Season info
+            -- Skip lines that mention durability, levels, cooldowns, or Mythic+/Season info
             if not text:find("/") and not text:find("Level") 
                 and not text:find("Suffused") 
-                and not text:find("Mythic") and not text:find("Season") then
+                and not text:find("Mythic") and not text:find("Season")
+                and not text:find("Cooldown") and not text:find("cooldown") then
                 
-                -- Scale only numbers that are likely to be stats (e.g., >100)
+                -- Scale numbers based on their size
                 local scaledText = text:gsub("(%d+[%d,%.]*)", function(num)
                     local numWithoutCommas = num:gsub(",", "")  -- Remove commas from the number
                     local numValue = tonumber(numWithoutCommas)
-                    if numValue and numValue > 100 then  -- Only scale larger numbers
+                    
+                    if numValue and numValue > 100 then  -- Scale larger numbers by 100
                         local scaledNum = numValue * statModifier
                         return string.format("%.0f", scaledNum)
+                    elseif numValue and numValue > 50 then  -- Scale numbers between 50 and 100 by 10
+                        local scaledNum = numValue * (statModifier * 10)
+                        return string.format("%.0f", scaledNum)
+                    elseif numValue and numValue > 25 then  -- Scale numbers between 25 and 50 by 5
+                        local scaledNum = numValue / 5
+                        return string.format("%.0f", scaledNum)
+                    elseif numValue and numValue > 10 then  -- Scale numbers between 10 and 25 by 2
+                        local scaledNum = numValue / 2
+                        return string.format("%.0f", scaledNum)
+                    elseif numValue and numValue > 0 then  -- Scale numbers below 10 by 0.5 (effectively multiply by 2)
+                        local scaledNum = numValue / 2
+                        return string.format("%.0f", scaledNum)
                     else
-                        return num  -- Return the number as-is if it should not be scaled
+                        return "1"  -- Default to 1 if the value is 0 or negative
                     end
                 end)
 
                 -- Update the tooltip line with the scaled text
-                if scaledText ~= text then  -- Only update if there was a change
+                if scaledText ~= text then
                     line:SetText(scaledText)
                 end
             end
@@ -143,6 +157,8 @@ local function ScaleTooltipStats(tooltip)
     end
     tooltip:Show()  -- Ensure the tooltip updates
 end
+
+
 
 -- Hook to the tooltip processor for items, targets, and other players
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, ScaleTooltipStats)
